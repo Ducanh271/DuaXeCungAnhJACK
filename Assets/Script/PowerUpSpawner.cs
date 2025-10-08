@@ -1,15 +1,27 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.AI;
 
 public class PowerUpSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject[] powerUpPrefabs; // Mảng Prefab vật phẩm
-    [SerializeField] private float spawnInterval = 10f; // Spawn mỗi 10 giây
-    [SerializeField] private Vector3 spawnArea = new Vector3(50f, 0f, 50f); // Khu vực spawn (kích thước đường đua)
+    [SerializeField] private Transform[] waypoints; // Mảng các waypoint trên đường đua
+    [SerializeField] private float spawnInterval = 0.05f; // Spawn mỗi 3 giây
+    [SerializeField] private int maxPowerUps = 20; // Giới hạn số lượng vật phẩm cùng lúc
+     [SerializeField] private int timeDisappear = 1; // Giới hạn số lượng vật phẩm cùng lúc
+    private int currentPowerUpCount = 0; // Đếm số vật phẩm hiện tại
 
     void Start()
     {
+        if (powerUpPrefabs == null || powerUpPrefabs.Length == 0)
+        {
+            Debug.LogError("⚠️ Vui lòng gán ít nhất một PowerUp Prefab trong Inspector!");
+            return;
+        }
+        if (waypoints == null || waypoints.Length == 0)
+        {
+            Debug.LogError("⚠️ Vui lòng gán ít nhất một Waypoint trong Inspector!");
+            return;
+        }
         StartCoroutine(SpawnPowerUps());
     }
 
@@ -18,30 +30,35 @@ public class PowerUpSpawner : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(spawnInterval);
-            SpawnRandomPowerUp();
+            if (currentPowerUpCount < maxPowerUps)
+            {
+                SpawnRandomPowerUp();
+            }
         }
     }
 
     private void SpawnRandomPowerUp()
     {
-        if (powerUpPrefabs.Length == 0) return;
-
-        // Chọn random Prefab
-        GameObject prefab = powerUpPrefabs[Random.Range(0, powerUpPrefabs.Length)];
-
-        // Vị trí random trên đường đua (giả sử đường đua là phẳng, điều chỉnh theo NavMesh nếu cần)
-        Vector3 spawnPos = new Vector3(
-            Random.Range(-spawnArea.x, spawnArea.x),
-            0.5f, // Cao độ trên mặt đất
-            Random.Range(-spawnArea.z, spawnArea.z)
-        );
-
-        // Kiểm tra vị trí hợp lệ (trên NavMesh, tùy chọn)
-        if (NavMesh.SamplePosition(spawnPos, out NavMeshHit hit, 5f, 1))
+        if (powerUpPrefabs == null || powerUpPrefabs.Length == 0 || waypoints == null || waypoints.Length == 0)
         {
-            spawnPos = hit.position;
+            Debug.LogWarning("Không có Prefab hoặc Waypoint để spawn!");
+            return;
         }
 
-        Instantiate(prefab, spawnPos, Quaternion.identity);
+        // Chọn random Prefab và Waypoint
+        GameObject prefab = powerUpPrefabs[Random.Range(0, powerUpPrefabs.Length)];
+        Transform waypoint = waypoints[Random.Range(0, waypoints.Length)];
+
+        // Spawn vật phẩm tại vị trí Waypoint
+        GameObject powerUp = Instantiate(prefab, waypoint.position, Quaternion.identity);
+        currentPowerUpCount++;
+
+        // Tự hủy vật phẩm sau một khoảng thời gian (tùy chọn)
+        Destroy(powerUp, 30f); // Hủy sau 10 giây, điều chỉnh theo nhu cầu
+    }
+
+    private void OnDestroy()
+    {
+        currentPowerUpCount--; // Giảm đếm khi vật phẩm bị hủy
     }
 }

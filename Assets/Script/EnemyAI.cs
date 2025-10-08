@@ -12,6 +12,12 @@ public class EnemyAI : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+        if (agent == null)
+        {
+            Debug.LogError("⚠️ NavMeshAgent không được gắn vào GameObject này!");
+            enabled = false;
+            return;
+        }
         player = GameObject.FindGameObjectWithTag("Player")?.transform;
         startTime = Time.time; // Ghi lại thời điểm bắt đầu
 
